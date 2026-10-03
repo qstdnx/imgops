@@ -32,8 +32,8 @@ imgops search -i -r image.png   # type initials, e.g. "qm" for iqdb + trace.moe
 
 ## Download
 
-[Click here](https://github.com/dogancelik/imgops/releases/latest) to download latest version.
+[Click here]((https://github.com/qstdnx/imgops/releases/tag/v1)) to download latest version.
 
 ## How To Use
 
-See `imgops -h` or check out [the Wiki](https://github.com/dogancelik/imgops/wiki/Examples).
+See `imgops -h`.
