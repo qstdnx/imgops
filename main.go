@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/eiannone/keyboard"
 	"github.com/pkg/browser"
@@ -25,6 +26,11 @@ var Version string
 var returnFlag = cli.BoolFlag{
 	Name:  "return, r",
 	Usage: "Output the result URL instead of opening it in the browser",
+}
+
+var copyFlag = cli.BoolFlag{
+	Name:  "copy, c",
+	Usage: "Copy the uploaded image link (ImgOps image URL) to the clipboard",
 }
 
 func cliSelect() string {
@@ -64,8 +70,53 @@ func checkSource(srcPath string) error {
 	}
 
 	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		if isCommandName(srcPath) {
+			return cli.NewExitError("'"+srcPath+"' is a command, not a file.\nUse 'imgops "+srcPath+" <file-or-url>' or pass the flag '-c' to copy the image link while searching, e.g. 'imgops iqdb -c image.png'", 2)
+		}
 		return cli.NewExitError("File doesn't exist: "+srcPath, 2)
 	}
+
+	return nil
+}
+
+// isCommandName reports whether the given string is one of the CLI command
+// names or aliases.
+func isCommandName(s string) bool {
+	for _, name := range []string{"search", "a", "iqdb", "saucenao", "tracemoe", "trace", "ascii2d", "copy", "clip", "url", "help", "h"} {
+		if s == name {
+			return true
+		}
+	}
+	return false
+}
+
+// resolveImageLink returns the link of the image as stored by ImgOps.
+// It prefers the link found in the last response body and falls back to the
+// final redirect URL.
+func resolveImageLink(srcPath string) string {
+	if isUrl(srcPath) {
+		return srcPath
+	}
+
+	if url, err := getUploadedImageURL(lastBody); err == nil && strings.TrimSpace(url) != "" {
+		return url
+	}
+
+	return imageUrlFromFinal(finalUrl)
+}
+
+// copyImageLink copies the uploaded image link to the clipboard and prints it.
+func copyImageLink(srcPath string) error {
+	imageLink := resolveImageLink(srcPath)
+	if strings.TrimSpace(imageLink) == "" {
+		return cli.NewExitError("Could not get the image link", 8)
+	}
+
+	if err := ClipboardCopy(imageLink); err != nil {
+		return cli.NewExitError("Could not copy to the clipboard: "+err.Error(), 7)
+	}
+
+	fmt.Println("Copied to clipboard: " + imageLink)
 
 	return nil
 }
@@ -141,6 +192,12 @@ func cliSearch(c *cli.Context) error {
 
 	openOrPrint(urls, c.Bool("return"))
 
+	if c.Bool("copy") {
+		if err := copyImageLink(srcPath); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -159,6 +216,12 @@ func cliSite(target string) cli.ActionFunc {
 		}
 
 		openOrPrint(urls, c.Bool("return"))
+
+		if c.Bool("copy") {
+			if err := copyImageLink(srcPath); err != nil {
+				return err
+			}
+		}
 
 		return nil
 	}
@@ -224,32 +287,33 @@ func main() {
 					Usage: "Type the targets you want to open",
 				},
 				returnFlag,
+				copyFlag,
 			},
 		},
 		{
 			Name:   "iqdb",
 			Usage:  "Reverse search an image on IQDB (anime)",
 			Action: cliSite("iqdb"),
-			Flags:  []cli.Flag{returnFlag},
+			Flags:  []cli.Flag{returnFlag, copyFlag},
 		},
 		{
 			Name:   "saucenao",
 			Usage:  "Reverse search an image on SauceNAO (anime)",
 			Action: cliSite("saucenao"),
-			Flags:  []cli.Flag{returnFlag},
+			Flags:  []cli.Flag{returnFlag, copyFlag},
 		},
 		{
 			Name:    "tracemoe",
 			Aliases: []string{"trace"},
 			Usage:   "Reverse search an image on trace.moe (anime)",
 			Action:  cliSite("tracemoe"),
-			Flags:   []cli.Flag{returnFlag},
+			Flags:   []cli.Flag{returnFlag, copyFlag},
 		},
 		{
 			Name:   "ascii2d",
 			Usage:  "Reverse search an image on ascii2d (anime)",
 			Action: cliSite("ascii2d"),
-			Flags:  []cli.Flag{returnFlag},
+			Flags:  []cli.Flag{returnFlag, copyFlag},
 		},
 		{
 			Name:    "copy",

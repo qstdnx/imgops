@@ -16,6 +16,10 @@ const defaultTarget = "imgops"
 var defaultAction bool
 var finalUrl string
 
+// lastBody keeps the HTML of the last upload/search response so that the
+// image link can be extracted afterwards.
+var lastBody string
+
 func setDefaultAction(targetAction string) {
 	if targetAction != defaultTarget {
 		defaultAction = false
@@ -33,6 +37,7 @@ func UploadURL(targetUrl string, targetAction string) ([]string, error) {
 		return strings.Fields(newUrl), nil
 	} else {
 		_, body, errs := gorequest.New().Get(newUrl).End()
+		lastBody = body
 		if errs != nil {
 			return strings.Fields(""), errors.New("GET error")
 		} else {
@@ -64,6 +69,7 @@ func UploadFile(targetPath string, targetAction string) ([]string, error) {
 		SendFile(bytes, filepath.Base(targetPath), "photo").
 		End()
 	debug("POST request errors: %v", errs)
+	lastBody = body
 
 	debug("Final URL: %s", finalUrl)
 	debug("Stop redirection: %b", defaultAction)

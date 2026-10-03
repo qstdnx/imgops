@@ -46,6 +46,26 @@ func getUploadedImageURL(document string) (string, error) {
 	return absoluteURL(src), nil
 }
 
+// imageUrlFromFinal derives the direct image URL from the ImgOps result page
+// URL, where the image URL is duplicated after the domain:
+//
+//	https://imgops.com/imgops.com/1hr-tempcache/xxx.png ->
+//	https://imgops.com/1hr-tempcache/xxx.png
+func imageUrlFromFinal(pageUrl string) string {
+	const prefix = "https://imgops.com/"
+
+	if !strings.HasPrefix(pageUrl, prefix) {
+		return pageUrl
+	}
+
+	rest := pageUrl[len(prefix):]
+	if strings.HasPrefix(rest, "imgops.com/") {
+		return "https://" + rest
+	}
+
+	return pageUrl
+}
+
 func findHref(document, targetStr, finalUrl string) ([]string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(document))
 	if err != nil {

@@ -68,3 +68,17 @@ func TestGetUploadedImageURL(t *testing.T) {
 		t.Error("Expected an error when the image is missing")
 	}
 }
+
+func TestImageUrlFromFinal(t *testing.T) {
+	page := "https://imgops.com/imgops.com/1hr-tempcache/userUploadTempCache_abc_test.png"
+	expected := "https://imgops.com/1hr-tempcache/userUploadTempCache_abc_test.png"
+
+	if got := imageUrlFromFinal(page); got != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, got)
+	}
+
+	remote := "https://imgops.com/https://example.com/cat.jpg"
+	if got := imageUrlFromFinal(remote); got != remote {
+		t.Errorf("Remote image page URL should be unchanged: %s", got)
+	}
+}
