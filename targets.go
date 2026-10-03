@@ -47,6 +47,26 @@ var availableTargets = []Target{
 		Key:  'u',
 		Id:   "#t110",
 	},
+	{
+		Name: "iqdb",
+		Key:  'q',
+		Id:   "#t78",
+	},
+	{
+		Name: "saucenao",
+		Key:  'n',
+		Id:   "#t82",
+	},
+	{
+		Name: "tracemoe",
+		Key:  'm',
+		Id:   "#t201",
+	},
+	{
+		Name: "ascii2d",
+		Key:  'd',
+		Id:   "#t84",
+	},
 }
 
 func getKeyToNameTargets(targets []Target) map[rune]string {

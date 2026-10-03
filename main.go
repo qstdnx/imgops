@@ -22,6 +22,11 @@ var authors = []cli.Author{
 
 var Version string
 
+var returnFlag = cli.BoolFlag{
+	Name:  "return, r",
+	Usage: "Output the result URL instead of opening it in the browser",
+}
+
 func cliSelect() string {
 	err := keyboard.Open()
 	if err != nil {
@@ -52,6 +57,50 @@ func cliSelect() string {
 	return ret
 }
 
+// checkSource makes sure the given path/URL can be used.
+func checkSource(srcPath string) error {
+	if isUrl(srcPath) {
+		return nil
+	}
+
+	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		return cli.NewExitError("File doesn't exist: "+srcPath, 2)
+	}
+
+	return nil
+}
+
+// runSearch uploads the given file/URL and returns the search result links
+// for the requested targets.
+func runSearch(srcPath, targets string) ([]string, error) {
+	debug("Path: %s", srcPath)
+	debug("Targets: %s", targets)
+
+	if err := checkSource(srcPath); err != nil {
+		return nil, err
+	}
+
+	if isUrl(srcPath) {
+		debug("Start URL upload")
+		return UploadURL(srcPath, targets)
+	}
+
+	debug("Start file upload")
+	return UploadFile(srcPath, targets)
+}
+
+// openOrPrint opens every URL in the browser, or prints them when the
+// --return flag is used.
+func openOrPrint(urls []string, returnOnly bool) {
+	for _, url := range urls {
+		if returnOnly {
+			fmt.Println(url)
+		} else {
+			browser.OpenURL(url)
+		}
+	}
+}
+
 func cliSearch(c *cli.Context) error {
 
 	if c.NArg() == 0 {
@@ -60,12 +109,6 @@ func cliSearch(c *cli.Context) error {
 
 	srcPath := c.Args().First()
 	targets := c.String("targets")
-
-	debug("Path: %s", srcPath)
-	debug("Targets: %s", targets)
-
-	var urls []string
-	var errUpload error
 
 	// Select flag
 	if c.Bool("select") {
@@ -85,34 +128,65 @@ func cliSearch(c *cli.Context) error {
 		}
 	}
 
-	// Upload
-	if isUrl(srcPath) == true {
-		debug("Start URL upload")
-		urls, errUpload = UploadURL(srcPath, targets)
-	} else {
-		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
-			return cli.NewExitError("File doesn't exist: "+srcPath, 2)
-		}
-		debug("Start file upload")
-		urls, errUpload = UploadFile(srcPath, targets)
-	}
+	urls, errUpload := runSearch(srcPath, targets)
 
 	// Upload result
 	if errUpload != nil && len(urls) == 0 {
 		return cli.NewExitError("Error during upload: "+errUpload.Error(), 3)
-	} else {
-		if errUpload != nil {
-			fmt.Fprintf(os.Stderr, "Unknown targets '%s', will open default page instead", targets)
+	}
+
+	if errUpload != nil {
+		fmt.Fprintf(os.Stderr, "Unknown targets '%s', will open default page instead", targets)
+	}
+
+	openOrPrint(urls, c.Bool("return"))
+
+	return nil
+}
+
+// cliSite returns an action that searches a fixed target website.
+func cliSite(target string) cli.ActionFunc {
+	return func(c *cli.Context) error {
+		if c.NArg() == 0 {
+			return cli.NewExitError("No file or URL is given", 1)
 		}
 
-		for _, url := range urls {
-			if c.Bool("return") {
-				fmt.Println(url)
-			} else {
-				browser.OpenURL(url)
-			}
+		srcPath := c.Args().First()
+
+		urls, errUpload := runSearch(srcPath, target)
+		if errUpload != nil && len(urls) == 0 {
+			return cli.NewExitError("Error during upload: "+errUpload.Error(), 3)
 		}
+
+		openOrPrint(urls, c.Bool("return"))
+
+		return nil
 	}
+}
+
+// cliClipboard uploads the given file/URL and copies the resulting image
+// link to the system clipboard.
+func cliClipboard(c *cli.Context) error {
+	if c.NArg() == 0 {
+		return cli.NewExitError("No file or URL is given", 1)
+	}
+
+	srcPath := c.Args().First()
+
+	if err := checkSource(srcPath); err != nil {
+		return err
+	}
+
+	imageURL, err := ImageURL(srcPath)
+	if err != nil {
+		return cli.NewExitError("Error while getting the image URL: "+err.Error(), 6)
+	}
+
+	if err := ClipboardCopy(imageURL); err != nil {
+		return cli.NewExitError("Could not copy to the clipboard: "+err.Error(), 7)
+	}
+
+	fmt.Println(imageURL)
 
 	return nil
 }
@@ -149,11 +223,39 @@ func main() {
 					Name:  "input, i",
 					Usage: "Type the targets you want to open",
 				},
-				cli.BoolFlag{
-					Name:  "return, r",
-					Usage: "Output the result URL",
-				},
+				returnFlag,
 			},
+		},
+		{
+			Name:   "iqdb",
+			Usage:  "Reverse search an image on IQDB (anime)",
+			Action: cliSite("iqdb"),
+			Flags:  []cli.Flag{returnFlag},
+		},
+		{
+			Name:   "saucenao",
+			Usage:  "Reverse search an image on SauceNAO (anime)",
+			Action: cliSite("saucenao"),
+			Flags:  []cli.Flag{returnFlag},
+		},
+		{
+			Name:    "tracemoe",
+			Aliases: []string{"trace"},
+			Usage:   "Reverse search an image on trace.moe (anime)",
+			Action:  cliSite("tracemoe"),
+			Flags:   []cli.Flag{returnFlag},
+		},
+		{
+			Name:   "ascii2d",
+			Usage:  "Reverse search an image on ascii2d (anime)",
+			Action: cliSite("ascii2d"),
+			Flags:  []cli.Flag{returnFlag},
+		},
+		{
+			Name:    "copy",
+			Aliases: []string{"clip", "url"},
+			Usage:   "Upload an image and copy its link to the clipboard",
+			Action:  cliClipboard,
 		},
 	}
 	app.Run(os.Args)

@@ -10,6 +10,26 @@ It supports files and URLs.
   These are Google, TinEye, Yandex, Bing, Reddit and few others  
   If you don't provide a “target”, it will open ImgOps page with the provided image.
 
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `imgops search <file-or-url>` | Search using `--targets`, alias `a` |
+| `imgops iqdb <file-or-url>` | Reverse search on [IQDB](https://iqdb.org) (anime) |
+| `imgops saucenao <file-or-url>` | Reverse search on [SauceNAO](https://saucenao.com) (anime) |
+| `imgops tracemoe <file-or-url>` | Reverse search on [trace.moe](https://trace.moe) (anime, alias `trace`) |
+| `imgops ascii2d <file-or-url>` | Reverse search on [ascii2d](https://ascii2d.net) (anime) |
+| `imgops copy <file-or-url>` | Upload an image and copy its link to the clipboard (aliases `clip`, `url`) |
+
+Every command accepts `--return`/`-r` to print the resulting URL instead of opening it in the browser.
+
+The new anime engines are also available as regular targets, so you can mix them:
+
+```sh
+imgops search -t "google, iqdb, saucenao" -r image.png
+imgops search -i -r image.png   # type initials, e.g. "qm" for iqdb + trace.moe
+```
+
 ## Download
 
 [Click here](https://github.com/dogancelik/imgops/releases/latest) to download latest version.

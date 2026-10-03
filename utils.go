@@ -12,6 +12,40 @@ func isUrl(targetPath string) bool {
 	return strings.Contains(targetPath, "http:") || strings.Contains(targetPath, "https:")
 }
 
+// absoluteURL turns links returned by ImgOps into absolute URLs.
+// ImgOps links are usually absolute but some targets (e.g. ascii2d) use
+// site-relative links such as "/get2post?...".
+func absoluteURL(href string) string {
+	href = strings.TrimSpace(href)
+
+	if strings.HasPrefix(href, "//") {
+		return "https:" + href
+	}
+
+	if strings.HasPrefix(href, "/") {
+		return "https://imgops.com" + href
+	}
+
+	return href
+}
+
+// getUploadedImageURL extracts the URL of the image shown by ImgOps from a
+// result page. For uploaded files this is the temporary ImgOps cache URL,
+// for remote images it is the original URL.
+func getUploadedImageURL(document string) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(document))
+	if err != nil {
+		return "", err
+	}
+
+	src, attrOk := doc.Find("#mainImage").Attr("src")
+	if !attrOk || strings.TrimSpace(src) == "" {
+		return "", errors.New("Could not find the image URL in the ImgOps response")
+	}
+
+	return absoluteURL(src), nil
+}
+
 func findHref(document, targetStr, finalUrl string) ([]string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(document))
 	if err != nil {
@@ -26,7 +60,7 @@ func findHref(document, targetStr, finalUrl string) ([]string, error) {
 			debug("Get href from query '%s': %v", query, attrOk)
 
 			if attrOk {
-				foundUrls = append(foundUrls, href)
+				foundUrls = append(foundUrls, absoluteURL(href))
 			}
 		}
 

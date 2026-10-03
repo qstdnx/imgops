@@ -5,7 +5,12 @@ export COMMIT_DATE=`git log -1 --pretty=format:%cI | sed -r -e 's/T.*//' -e 's/-
 export BUILD_DIR="build/"
 
 function PREBUILD {
-  go get ./...
+  # Go modules: download dependencies (falls back to GOPATH mode if there is no go.mod)
+  if [[ -f go.mod ]]; then
+    go mod download
+  else
+    go get ./...
+  fi
 }
 
 function BUILD {

@@ -18,4 +18,8 @@ func TestKeyToId(t *testing.T) {
 	if id, ok = my[bing]; id != "#t101" {
 		t.Error("'bing' ID is not correct")
 	}
+
+	if id, ok = my["iqdb"]; !ok || id != "#t78" {
+		t.Error("'iqdb' ID is not correct")
+	}
 }
