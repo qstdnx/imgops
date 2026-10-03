@@ -21,7 +21,13 @@ It supports files and URLs.
 | `imgops ascii2d <file-or-url>` | Reverse search on [ascii2d](https://ascii2d.net) (anime) |
 | `imgops copy <file-or-url>` | Upload an image and copy its link to the clipboard (aliases `clip`, `url`) |
 
-Every command accepts `--return`/`-r` to print the resulting URL instead of opening it in the browser.
+Every command accepts `--return`/`-r` to print the resulting URL instead of opening it in the browser, and `--copy`/`-c` to copy the uploaded image link (the temporary ImgOps image URL) to the clipboard while searching:
+
+```sh
+imgops iqdb -c image.png        # search on IQDB and copy the ImgOps image link
+imgops saucenao -c -r image.png # print the result URL and copy the image link
+imgops copy image.png           # upload only and copy the image link
+```
 
 The new anime engines are also available as regular targets, so you can mix them:
 
